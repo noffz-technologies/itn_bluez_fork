@@ -67,7 +67,7 @@
 #include "settings.h"
 #include "set.h"
 
-#define DISCONNECT_TIMER	2
+#define DISCONNECT_TIMER	0
 #define DISCOVERY_TIMER		1
 #define INVALID_FLAGS		0xff
 
