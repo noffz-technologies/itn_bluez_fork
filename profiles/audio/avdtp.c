@@ -1308,7 +1308,7 @@ struct avdtp_remote_sep *avdtp_find_remote_sep(struct avdtp *session,
 
 static GSList *caps_to_list(uint8_t *data, size_t size,
 				struct avdtp_service_capability **codec,
-				gboolean *delay_reporting)
+				gboolean *delay_reporting, uint8_t *err)
 {
 	struct avdtp_service_capability *cap;
 	GSList *caps;
@@ -1324,6 +1324,13 @@ static GSList *caps_to_list(uint8_t *data, size_t size,
 
 		cap = (struct avdtp_service_capability *)data;
 
+		/* Verify that the Media Transport capability's length = 0. Reject otherwise */
+		if (cap->category == AVDTP_MEDIA_TRANSPORT && cap->length != 0) {
+			error("Invalid media transport capability length. It is not 0x00");
+			*err = AVDTP_BAD_MEDIA_TRANSPORT_FORMAT; 
+			return NULL;
+		} 
+	
 		if (sizeof(*cap) + cap->length > size) {
 			error("Invalid capability data in getcap resp");
 			break;
@@ -1547,22 +1554,18 @@ static gboolean avdtp_setconf_cmd(struct avdtp *session, uint8_t transaction,
 	stream->caps = caps_to_list(req->caps,
 					size - sizeof(struct setconf_req),
 					&stream->codec,
-					&stream->delay_reporting);
+					&stream->delay_reporting,
+					&err);
+
+	if(!stream->caps && err == AVDTP_BAD_MEDIA_TRANSPORT_FORMAT) {
+		category = 0x00;
+		goto failed_stream;
+	}
 
 	if (!stream->caps || !stream->codec) {
 		err = AVDTP_UNSUPPORTED_CONFIGURATION;
 		category = 0x00;
 		goto failed_stream;
-	}
-
-	/* Verify that the Media Transport capability's length = 0. Reject otherwise */
-	for (l = stream->caps; l != NULL; l = g_slist_next(l)) {
-		struct avdtp_service_capability *cap = l->data;
-
-		if (cap->category == AVDTP_MEDIA_TRANSPORT && cap->length != 0) {
-			err = AVDTP_BAD_MEDIA_TRANSPORT_FORMAT;
-			goto failed_stream;
-		}
 	}
 
 	if (stream->delay_reporting && session->version < 0x0103)
@@ -2782,6 +2785,7 @@ static gboolean avdtp_get_capabilities_resp(struct avdtp *session,
 {
 	struct avdtp_remote_sep *sep;
 	uint8_t seid;
+	uint8_t err = 0x00;
 
 	/* Check for minimum required packet size includes:
 	 *   1. getcap resp header
@@ -2810,7 +2814,7 @@ static gboolean avdtp_get_capabilities_resp(struct avdtp *session,
 	}
 
 	sep->caps = caps_to_list(resp->caps, size - sizeof(struct getcap_resp),
-					&sep->codec, &sep->delay_reporting);
+					&sep->codec, &sep->delay_reporting, &err);
 
 	return TRUE;
 }
