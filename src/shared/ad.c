@@ -714,19 +714,19 @@ uint8_t *bt_ad_generate(struct bt_ad *ad, size_t *length)
 
 	iov.iov_len = 0;
 
+	serialize_data(ad->data, &iov);
+
+	serialize_manuf_data(ad->manufacturer_data, &iov);
+	
 	serialize_service_uuids(ad->service_uuids, &iov);
 
 	serialize_solicit_uuids(ad->solicit_uuids, &iov);
-
-	serialize_manuf_data(ad->manufacturer_data, &iov);
 
 	serialize_service_data(ad->service_data, &iov);
 
 	serialize_name(ad, &iov);
 
 	serialize_appearance(ad, &iov);
-
-	serialize_data(ad->data, &iov);
 
 	return iov.iov_base;
 }
