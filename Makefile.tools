@@ -225,7 +225,8 @@ endif
 
 if TOOLS
 bin_PROGRAMS += tools/rctest tools/l2test tools/l2ping tools/bluemoon \
-		tools/hex2hcd tools/mpris-proxy tools/btattach tools/isotest
+		tools/hex2hcd tools/mpris-proxy tools/btattach tools/isotest \
+		tools/obexctl
 
 noinst_PROGRAMS += tools/bdaddr tools/avinfo tools/avtest \
 			tools/scotest tools/hwdb \
